@@ -1,42 +1,68 @@
 use std::borrow::Borrow;
+use std::fs::OpenOptions;
 use std::fs::{self, read, File};
 use std::io::Write;
 use std::path::Path;
 
+use chrono::prelude::Local;
+
+use chrono::Datelike;
 use homedir::get_my_home;
 
 #[derive(Debug)]
 pub struct Dir {
     pub projects_file: String,
+    pub log_file: String,
+    pub current_month: String,
+    pub current_year: String,
 }
 
 impl Dir {
+    //todo: handle option unwraping in this method.
     pub fn new() -> Self {
-        let root = Self::home_dir().unwrap();
+        let home_dir = get_my_home().unwrap().unwrap();
+        let time_tracker_dir = Self::time_tracker_dir(home_dir.to_str().unwrap());
+
+        let year = Local::now().year().to_string();
+        let month = Local::now().month().to_string();
+
+        let year_dir = Self::year_dir(&time_tracker_dir, &year);
+
         Dir {
-            projects_file: format!("{}/{}", root, "projects"),
+            projects_file: format!("{}/{}", time_tracker_dir, "projects"),
+            log_file: format!("{}/{}", year_dir, month),
+            current_year: year,
+            current_month: month,
         }
     }
 
-    //Checks to see if .time_tracker is in the home dir and creates it if not.
-    //Returns its location as a string.
-    pub fn home_dir() -> Option<String> {
-        if let Ok(Some(home)) = get_my_home() {
-            let dir = format!("{}/{}", home.to_str().unwrap(), ".time_tracker");
-            let path = Path::new(&dir);
-            let dir = path
-                .to_str()
-                .expect(&format!("Could not locate directory {}", dir));
-            if !path.exists() {
-                fs::create_dir(path).expect(&format!("Could not create path {}", dir))
-            }
-            Some(dir.to_owned())
-        } else {
-            None
+    //Creates time_tracker home dir if it does not exist.
+    fn time_tracker_dir(home: &str) -> String {
+        let dir = format!("{}/{}", home, ".time_tracker");
+        let path = Path::new(&dir);
+        let dir = path
+            .to_str()
+            .expect(&format!("Could not locate directory {}", dir));
+        if !path.exists() {
+            fs::create_dir(path).expect(&format!("Could not create path {}", dir))
         }
+        dir.to_owned()
     }
 
-    pub fn read(file: &str) -> String {
+    //Creates dir for the current year if it does not exist
+    fn year_dir(time_tacker_dir: &str, year: &str) -> String {
+        let dir = format!("{}/{}", time_tacker_dir, year);
+        let path = Path::new(&dir);
+        let dir = path
+            .to_str()
+            .expect(&format!("Could not locate directory {}", dir));
+        if !path.exists() {
+            fs::create_dir(path).expect(&format!("Could not create path {}", dir))
+        }
+        dir.to_owned()
+    }
+
+    fn read(file: &str) -> String {
         let path = Path::new(file);
 
         if path.is_file() {
@@ -53,6 +79,18 @@ impl Dir {
     pub fn write(file: &str, data: &str) -> Result<(), std::io::Error> {
         let mut file = File::create(file).unwrap();
         file.write_all(data.as_bytes()).unwrap();
+        Ok(())
+    }
+
+    pub fn write_line(file: &str, data: &str) -> Result<(), std::io::Error> {
+        let mut file = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(file)?;
+
+        // Write a new line to the file
+        writeln!(file, "{}", data)?;
+
         Ok(())
     }
 

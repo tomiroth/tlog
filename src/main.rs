@@ -1,7 +1,8 @@
 mod dir;
+mod input;
 mod projects;
+mod task;
 
-use std::io;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
@@ -18,13 +19,14 @@ struct Cli {
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum Commands {
     #[command(subcommand)]
     Projects(Projects),
+    Log,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum Projects {
     List,
     Add { name: String },
@@ -36,17 +38,7 @@ struct ProjectAdd {
     name: Option<String>,
 }
 
-fn confirm(text: String) -> bool {
-    let mut input = String::new();
-    println!("{} (y):", text);
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
-
-    matches!(input.trim().to_lowercase().as_str(), "y" | "yes" | "")
-}
-
-fn main() {
+fn main() -> () {
     let cli = Cli::parse();
     let dir = dir::Dir::new();
 
@@ -65,7 +57,7 @@ fn main() {
             }
             Projects::Delete { name } => {
                 if projects.exists(name) {
-                    if confirm(format!("Are you sure you wish to delete project {}", name)) {
+                    if input::confirm(format!("Are you sure you wish to delete project {}", name)) {
                         projects.delete(name);
                         println!("Project {name:?} deleted.")
                     }
@@ -74,5 +66,9 @@ fn main() {
                 }
             }
         },
+        Commands::Log => {
+            let task = task::Task::new();
+            println!("{:?}", task);
+        }
     }
 }
