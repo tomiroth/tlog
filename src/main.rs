@@ -1,6 +1,7 @@
 mod dir;
 mod projects;
 
+use std::io;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
@@ -14,44 +15,64 @@ struct Cli {
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
     #[command(subcommand)]
-    command: Commands
+    command: Commands,
 }
 
 #[derive(Subcommand)]
-enum Commands{ 
+enum Commands {
     #[command(subcommand)]
-    Projects(Projects)
+    Projects(Projects),
 }
 
 #[derive(Subcommand)]
-enum Projects{
+enum Projects {
     List,
-    Add,
-    Delete
+    Add { name: String },
+    Delete { name: String },
 }
 
+#[derive(Parser)]
+struct ProjectAdd {
+    name: Option<String>,
+}
 
+fn confirm(text: String) -> bool {
+    let mut input = String::new();
+    println!("{} (y):", text);
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+
+    matches!(input.trim().to_lowercase().as_str(), "y" | "yes" | "")
+}
 
 fn main() {
     let cli = Cli::parse();
     let dir = dir::Dir::new();
 
-
     let projects = projects::Projects::new(&dir);
 
     match &cli.command {
-        Commands::Projects(cmd) => match cmd{
+        Commands::Projects(cmd) => match cmd {
             Projects::List => {
-                println!("{:?}", projects.get());
-                println!("List Projects")
+                let projects = projects.get();
+                println!("Available projects:");
+                projects.iter().for_each(|p| println!(" - {}", p));
             }
-            Projects::Add => {
-                projects.add("testing");
-                println!("Add Project")
+            Projects::Add { name } => {
+                projects.add(name);
+                println!("Added project {name:?}");
             }
-            Projects::Delete => {
-                println!("Delete Project")
+            Projects::Delete { name } => {
+                if projects.exists(name) {
+                    if confirm(format!("Are you sure you wish to delete project {}", name)) {
+                        projects.delete(name);
+                        println!("Project {name:?} deleted.")
+                    }
+                } else {
+                    println!("Project {name:?} does not exist.")
+                }
             }
-        }
+        },
     }
 }
