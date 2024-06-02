@@ -46,7 +46,7 @@ impl Task {
         };
 
         let mut wtr = Writer::from_path(&dir.current_file).unwrap();
-        wtr.serialize(&task);
+        let _ = wtr.serialize(&task);
 
         Some(task)
     }
@@ -55,7 +55,7 @@ impl Task {
         self.end = Some(Local::now());
 
         let mut wtr = Writer::from_path(&dir.last_file).unwrap();
-        wtr.serialize(self);
+        let _ = wtr.serialize(self);
         dir.remove_current_file();
     }
 
@@ -83,13 +83,13 @@ impl Task {
             _ => {
                 println!("Invalide project");
                 ProjectsOut::list(projects);
-                Self::set_project(projects, &default_value)
+                Self::set_project(projects, default_value)
             }
         };
         if !projects.exists(&project.to_string()) {
             println!("Invalide project \"{}\"", project);
             ProjectsOut::list(projects);
-            project = Self::set_project(projects, &default_value);
+            project = Self::set_project(projects, default_value);
         }
         project
     }

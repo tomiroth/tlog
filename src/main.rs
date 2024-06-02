@@ -47,7 +47,7 @@ struct ProjectAdd {
     name: Option<String>,
 }
 
-fn main() -> () {
+fn main() {
     let cli = Cli::parse();
     let dir = dir::Dir::new();
 
@@ -76,16 +76,16 @@ fn main() -> () {
                 let task = Task::from_current(&dir);
                 TaskOut::current_task(task.expect("Could not create task"));
             } else if *stop {
-                let mut current_task = Task::from_current(&dir);
+                let current_task = Task::from_current(&dir);
                 if let Some(mut current_task) = current_task {
-                    current_task.complete(&dir)
+                    current_task.complete(&dir);
+                    TaskOut::current_task(current_task);
                 }
 
                 let task = Task::from_current(&dir);
-                TaskOut::current_task(task.expect("Could not create task"));
                 dir.remove_current_file();
             } else {
-                let mut current_task = Task::from_current(&dir);
+                let current_task = Task::from_current(&dir);
                 if let Some(mut current_task) = current_task {
                     current_task.complete(&dir)
                 }
