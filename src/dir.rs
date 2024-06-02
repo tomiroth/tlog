@@ -13,6 +13,8 @@ use homedir::get_my_home;
 pub struct Dir {
     pub projects_file: String,
     pub log_file: String,
+    pub current_file: String,
+    pub last_file: String,
     pub current_month: String,
     pub current_year: String,
 }
@@ -29,8 +31,10 @@ impl Dir {
         let year_dir = Self::year_dir(&time_tracker_dir, &year);
 
         Dir {
-            projects_file: format!("{}/{}", time_tracker_dir, "projects"),
+            projects_file: format!("{}/{}", &time_tracker_dir, "projects"),
             log_file: format!("{}/{}", year_dir, month),
+            current_file: format!("{}/{}", time_tracker_dir, "current"),
+            last_file: format!("{}/{}", time_tracker_dir, "last"),
             current_year: year,
             current_month: month,
         }
@@ -83,10 +87,7 @@ impl Dir {
     }
 
     pub fn write_line(file: &str, data: &str) -> Result<(), std::io::Error> {
-        let mut file = OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(file)?;
+        let mut file = OpenOptions::new().append(true).create(true).open(file)?;
 
         // Write a new line to the file
         writeln!(file, "{}", data)?;
@@ -96,5 +97,13 @@ impl Dir {
 
     pub fn read_project_file(&self) -> String {
         Self::read(&self.projects_file.borrow())
+    }
+
+    fn remove_file(&self, file: &str) {
+        fs::remove_file(file).unwrap();
+    }
+
+    pub fn remove_current_file(&self) {
+        self.remove_file(&self.current_file)
     }
 }

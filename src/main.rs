@@ -1,11 +1,15 @@
 mod dir;
 mod input;
+mod out;
 mod projects;
 mod task;
 
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+use task::Task;
+
+use crate::out::{projects::ProjectsOut, task::TaskOut};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -23,7 +27,12 @@ struct Cli {
 enum Commands {
     #[command(subcommand)]
     Projects(Projects),
-    Log,
+    Log {
+        #[arg(short, long)]
+        current: bool,
+        #[arg(short, long)]
+        stop: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -46,11 +55,7 @@ fn main() -> () {
 
     match &cli.command {
         Commands::Projects(cmd) => match cmd {
-            Projects::List => {
-                let projects = projects.get();
-                println!("Available projects:");
-                projects.iter().for_each(|p| println!(" - {}", p));
-            }
+            Projects::List => ProjectsOut::list(&projects),
             Projects::Add { name } => {
                 projects.add(name);
                 println!("Added project {name:?}");
@@ -66,9 +71,28 @@ fn main() -> () {
                 }
             }
         },
-        Commands::Log => {
-            let task = task::Task::new();
-            println!("{:?}", task);
+        Commands::Log { current, stop } => {
+            if *current {
+                let task = Task::from_current(&dir);
+                TaskOut::current_task(task.expect("Could not create task"));
+            } else if *stop {
+                let mut current_task = Task::from_current(&dir);
+                if let Some(mut current_task) = current_task {
+                    current_task.complete(&dir)
+                }
+
+                let task = Task::from_current(&dir);
+                TaskOut::current_task(task.expect("Could not create task"));
+                dir.remove_current_file();
+            } else {
+                let mut current_task = Task::from_current(&dir);
+                if let Some(mut current_task) = current_task {
+                    current_task.complete(&dir)
+                }
+
+                let task = task::Task::new(&dir, &projects);
+                TaskOut::current_task(task.expect("Could not create task"));
+            }
         }
     }
 }

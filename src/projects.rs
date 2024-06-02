@@ -9,6 +9,7 @@ impl<'a> Projects<'a> {
     pub fn get(&'a self) -> &'a Vec<String> {
         &self.inner
     }
+
     pub fn new(dir: &'a Dir) -> Self {
         let projects_string = dir.read_project_file();
         let split = projects_string
