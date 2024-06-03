@@ -1,29 +1,35 @@
 use core::panic;
+use std::fs::OpenOptions;
 
 use chrono::prelude::{DateTime, Local};
-use csv::{Reader, Writer};
+use csv::{Reader, Writer, WriterBuilder};
 use serde::{Deserialize, Serialize};
 
 use crate::dir::Dir;
 use crate::input;
 use crate::out::projects::ProjectsOut;
+
 use crate::projects::Projects;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
-pub struct Task {
+pub struct Task<'a> {
     pub name: String,
     pub ticket_number: Option<String>,
     pub project: String,
     pub start: DateTime<Local>,
     pub end: Option<DateTime<Local>>,
+    #[serde(skip)]
+    dir: Option<&'a Dir>,
 }
 
-impl Task {
-    pub fn new(dir: &Dir, projects: &Projects) -> Option<Self> {
+impl<'a> Task<'a> {
+    pub fn new(dir: &'a Dir, projects: &Projects) -> Option<Self> {
         let last_task = Self::from_last(dir);
+        println!("{:?}", last_task);
 
         let default = last_task.as_ref().map(|t| t.name.to_owned());
+        println!("{default:?}");
         let name = match input::input("Task name", default) {
             Some(name) => name,
             _ => panic!("Please entry task name!"),
@@ -43,6 +49,7 @@ impl Task {
             project,
             start: Local::now(),
             end: None,
+            dir: Some(dir),
         };
 
         let mut wtr = Writer::from_path(&dir.current_file).unwrap();
@@ -51,26 +58,67 @@ impl Task {
         Some(task)
     }
 
-    pub fn complete(&mut self, dir: &Dir) {
+    pub fn complete(&mut self) {
         self.end = Some(Local::now());
-
-        let mut wtr = Writer::from_path(&dir.last_file).unwrap();
-        let _ = wtr.serialize(self);
-        dir.remove_current_file();
+        self.write_last_file();
+        self.dir().remove_current_file();
+        self.write_to_log_file();
     }
 
-    pub fn from_current(dir: &Dir) -> Option<Self> {
+    pub fn dir(&self) -> &Dir {
+        self.dir.expect("Dir should exists")
+    }
+
+    pub fn write_to_log_file(&self) {
+        let file = self.dir().get_log_file_location();
+        let file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(file)
+            .unwrap();
+
+        let mut wtr = WriterBuilder::new();
+        let mut wtr = wtr.has_headers(false).from_writer(file);
+        wtr.serialize(self);
+        wtr.flush();
+        //let data = String::from_utf8(wtr.into_inner().unwrap()).unwrap();
+        //let mut file = OpenOptions::new()
+        //    .write(true)
+        //    .create(true)
+        //    .append(true)
+        //    .open(file)
+        //    .unwrap();
+        //
+        //writeln!(file, "{}", data).unwrap();
+        //Ok(())
+    }
+
+    pub fn write_last_file(&self) {
+        let mut wtr = Writer::from_path(&self.dir().last_file).unwrap();
+        let _ = wtr.serialize(self);
+    }
+
+    pub fn from_current(dir: &'a Dir) -> Option<Self> {
         if let Ok(mut rdr) = Reader::from_path(&dir.current_file) {
             if let Some(Ok(Some(task))) = rdr.deserialize().next() {
+                let task = Task {
+                    dir: Some(dir),
+                    ..task
+                };
                 return Some(task);
             }
         }
         None
     }
 
-    fn from_last(dir: &Dir) -> Option<Self> {
+    fn from_last(dir: &'a Dir) -> Option<Self> {
         if let Ok(mut rdr) = Reader::from_path(&dir.last_file) {
             if let Some(Ok(Some(task))) = rdr.deserialize().next() {
+                let task = Task {
+                    dir: Some(dir),
+                    ..task
+                };
                 return Some(task);
             }
         }

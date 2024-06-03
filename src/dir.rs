@@ -11,6 +11,7 @@ use homedir::get_my_home;
 
 #[derive(Debug)]
 pub struct Dir {
+    pub time_tracker_dir: String,
     pub projects_file: String,
     pub log_file: String,
     pub current_file: String,
@@ -37,6 +38,7 @@ impl Dir {
             last_file: format!("{}/{}", time_tracker_dir, "last"),
             current_year: year,
             current_month: month,
+            time_tracker_dir,
         }
     }
 
@@ -100,10 +102,18 @@ impl Dir {
     }
 
     fn remove_file(&self, file: &str) {
-        fs::remove_file(file).unwrap();
+        let test = fs::remove_file(file).unwrap();
     }
 
     pub fn remove_current_file(&self) {
         self.remove_file(&self.current_file)
+    }
+
+    pub fn get_log_file_location(&self) -> String {
+        let path = format!(
+            "{}/{}/{}",
+            self.time_tracker_dir, self.current_year, self.current_month
+        );
+        path
     }
 }

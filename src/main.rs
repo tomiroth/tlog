@@ -78,16 +78,15 @@ fn main() {
             } else if *stop {
                 let current_task = Task::from_current(&dir);
                 if let Some(mut current_task) = current_task {
-                    current_task.complete(&dir);
+                    current_task.complete();
                     TaskOut::current_task(current_task);
                 }
 
-                let task = Task::from_current(&dir);
-                dir.remove_current_file();
+                let _task = Task::from_current(&dir);
             } else {
                 let current_task = Task::from_current(&dir);
                 if let Some(mut current_task) = current_task {
-                    current_task.complete(&dir)
+                    current_task.complete()
                 }
 
                 let task = task::Task::new(&dir, &projects);
