@@ -5,6 +5,7 @@ mod projects;
 mod task;
 
 use std::path::PathBuf;
+use tui;
 
 use clap::{Parser, Subcommand};
 use task::Task;
@@ -27,12 +28,8 @@ struct Cli {
 enum Commands {
     #[command(subcommand)]
     Projects(Projects),
-    Log {
-        #[arg(short, long)]
-        current: bool,
-        #[arg(short, long)]
-        stop: bool,
-    },
+    #[command(subcommand)]
+    Task(TaskCmd),
 }
 
 #[derive(Subcommand, Debug)]
@@ -40,6 +37,31 @@ enum Projects {
     List,
     Add { name: String },
     Delete { name: String },
+}
+
+#[derive(Subcommand, Debug)]
+enum TaskCmd {
+    Start {
+        #[arg(short, long)]
+        /// Select tasks from existing list of tasks, by default it will be
+        /// tasks you have logged time against in the past. It only list
+        /// tasks done this month
+        list: bool,
+        #[arg(short, long)]
+        /// Select task from a markdown file. It will find all lines that
+        /// start with:
+        /// " - [ ]" and list them as a task.
+        mark_down: bool,
+        /// Select heading the checked items should come from in markdown
+        /// file. It will use all lines up until the next heading.
+        #[arg(long)]
+        mark_down_heading: bool,
+        #[arg(short, long)]
+        /// Use what is in your clipboard for the name of the task.
+        clip_board: bool,
+    },
+    Stop,
+    Current,
 }
 
 #[derive(Parser)]
@@ -71,11 +93,22 @@ fn main() {
                 }
             }
         },
-        Commands::Log { current, stop } => {
-            if *current {
-                let task = Task::from_current(&dir);
-                TaskOut::current_task(task.expect("Could not create task"));
-            } else if *stop {
+        Commands::Task(cmd) => match cmd {
+            TaskCmd::Start { list, .. } => {
+                if *list {
+                    let tasks = vec!["task 1", "task 2", "task 3", "task 4"];
+                    let task = tui::menu("Select task:", &tasks);
+                } else {
+                    let current_task = Task::from_current(&dir);
+                    if let Some(mut current_task) = current_task {
+                        current_task.complete()
+                    }
+
+                    let task = task::Task::new(&dir, &projects);
+                    TaskOut::current_task(task.expect("Could not create task"));
+                }
+            }
+            TaskCmd::Stop => {
                 let current_task = Task::from_current(&dir);
                 if let Some(mut current_task) = current_task {
                     current_task.complete();
@@ -83,15 +116,11 @@ fn main() {
                 }
 
                 let _task = Task::from_current(&dir);
-            } else {
-                let current_task = Task::from_current(&dir);
-                if let Some(mut current_task) = current_task {
-                    current_task.complete()
-                }
-
-                let task = task::Task::new(&dir, &projects);
+            }
+            TaskCmd::Current => {
+                let task = Task::from_current(&dir);
                 TaskOut::current_task(task.expect("Could not create task"));
             }
-        }
+        },
     }
 }
