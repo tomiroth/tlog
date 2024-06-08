@@ -11,6 +11,7 @@ use homedir::get_my_home;
 
 #[derive(Debug)]
 pub struct Dir {
+    pub config_file: String,
     ///The directory we store all everything.
     pub time_tracker_dir: String,
     ///The file we store defined projects.
@@ -39,6 +40,7 @@ impl Dir {
         let year_dir = Self::year_dir(&time_tracker_dir, &year);
 
         Dir {
+            config_file: format!("{}/{}", &time_tracker_dir, "config.toml"),
             projects_file: format!("{}/{}", &time_tracker_dir, "projects"),
             log_file: format!("{}/{}", year_dir, month),
             current_file: format!("{}/{}", time_tracker_dir, "current"),

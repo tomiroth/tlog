@@ -1,16 +1,17 @@
+mod config;
 mod dir;
 mod input;
+mod open;
 mod out;
 mod projects;
 mod task;
 mod tasks;
 
-use std::path::PathBuf;
-use tui;
-
-use clap::{Parser, Subcommand};
 use task::Task;
 use tasks::{ChronoUnit, Tasks};
+
+use clap::{Parser, Subcommand};
+use open::open_file_in_editor;
 
 use crate::out::{projects::ProjectsOut, task::TaskOut};
 
@@ -18,8 +19,6 @@ use crate::out::{projects::ProjectsOut, task::TaskOut};
 #[command(version, about, long_about = None)]
 struct Cli {
     name: Option<String>,
-    #[arg(short, long, value_name = "FILE")]
-    config: Option<PathBuf>,
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
     #[command(subcommand)]
@@ -28,21 +27,31 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    ///List/Add/remove projects
     #[command(subcommand)]
     Projects(Projects),
+    ///Start/Stop task logging. You can only log one task at a time.
     #[command(subcommand)]
     Task(TaskCmd),
+    ///Open the latest log file in your default editor or specified
+    ///editor in config.toml
+    Open,
 }
 
 #[derive(Subcommand, Debug)]
 enum Projects {
+    ///List current available tasks
     List,
+    ///Add a projects
     Add { name: String },
+    ///Delete a project
     Delete { name: String },
 }
 
 #[derive(Subcommand, Debug)]
 enum TaskCmd {
+    ///Start a task. -l to select a task you previously have logged time to.
+    ///Starting a task while one is running will stop the current task.
     Start {
         #[arg(short, long)]
         /// Select tasks from existing list of tasks, by default it will be
@@ -62,7 +71,9 @@ enum TaskCmd {
         /// Use what is in your clipboard for the name of the task.
         clip_board: bool,
     },
+    ///Stop current task.
     Stop,
+    ///Output time spent on current task
     Current,
 }
 
@@ -72,7 +83,7 @@ struct ProjectAdd {
 }
 
 fn complete_current_task(dir: &dir::Dir) {
-    let current_task = Task::from_current(&dir);
+    let current_task = Task::from_current(dir);
     if let Some(mut current_task) = current_task {
         current_task.complete()
     }
@@ -80,6 +91,7 @@ fn complete_current_task(dir: &dir::Dir) {
 fn main() {
     let cli = Cli::parse();
     let dir = dir::Dir::new();
+    let config = config::Config::new(&dir.config_file);
 
     let projects = projects::Projects::new(&dir);
 
@@ -142,5 +154,8 @@ fn main() {
                 TaskOut::current_task(task.expect("Could not create task"));
             }
         },
+        Commands::Open => {
+            open_file_in_editor(&config.editor, &dir.log_file);
+        }
     }
 }
