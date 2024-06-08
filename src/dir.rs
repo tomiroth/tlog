@@ -11,10 +11,17 @@ use homedir::get_my_home;
 
 #[derive(Debug)]
 pub struct Dir {
+    ///The directory we store all everything.
     pub time_tracker_dir: String,
+    ///The file we store defined projects.
     pub projects_file: String,
+    ///The current log file. Current log file will be stored/called
+    ///[year]/[month]. So for example if we are currently in June,
+    ///2024. Task logs will be saved in 2024/6. The file is a CVS
     pub log_file: String,
+    ///This stores the current active task.
     pub current_file: String,
+    ///This stores the last active task.
     pub last_file: String,
     pub current_month: String,
     pub current_year: String,
@@ -40,6 +47,10 @@ impl Dir {
             current_month: month,
             time_tracker_dir,
         }
+    }
+
+    pub fn month_file(&self, year: &str, month: &str) -> String {
+        format!("{}/{}/{}", self.time_tracker_dir, year, month)
     }
 
     //Creates time_tracker home dir if it does not exist.

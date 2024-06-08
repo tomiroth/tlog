@@ -58,6 +58,15 @@ impl<'a> Task<'a> {
         Some(task)
     }
 
+    pub fn set_dir(&mut self, dir: &'a Dir) {
+        self.dir = Some(&dir);
+    }
+
+    pub fn start(&self) {
+        let mut wtr = Writer::from_path(&self.dir.unwrap().current_file).unwrap();
+        let _ = wtr.serialize(&self);
+    }
+
     pub fn complete(&mut self) {
         self.end = Some(Local::now());
         self.write_last_file();

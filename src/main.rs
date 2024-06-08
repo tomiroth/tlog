@@ -3,12 +3,14 @@ mod input;
 mod out;
 mod projects;
 mod task;
+mod tasks;
 
 use std::path::PathBuf;
 use tui;
 
 use clap::{Parser, Subcommand};
 use task::Task;
+use tasks::{ChronoUnit, Tasks};
 
 use crate::out::{projects::ProjectsOut, task::TaskOut};
 
@@ -69,6 +71,12 @@ struct ProjectAdd {
     name: Option<String>,
 }
 
+fn complete_current_task(dir: &dir::Dir) {
+    let current_task = Task::from_current(&dir);
+    if let Some(mut current_task) = current_task {
+        current_task.complete()
+    }
+}
 fn main() {
     let cli = Cli::parse();
     let dir = dir::Dir::new();
@@ -96,13 +104,21 @@ fn main() {
         Commands::Task(cmd) => match cmd {
             TaskCmd::Start { list, .. } => {
                 if *list {
-                    let tasks = vec!["task 1", "task 2", "task 3", "task 4"];
-                    let task = tui::menu("Select task:", &tasks);
-                } else {
-                    let current_task = Task::from_current(&dir);
-                    if let Some(mut current_task) = current_task {
-                        current_task.complete()
+                    let tasks = Tasks::new(ChronoUnit::Month, &dir);
+                    let task_names = tasks.get_names();
+                    let task_name = tui::menu("Select task:", &task_names);
+                    let task = tasks.get_latest_task_by_name(task_name);
+
+                    if let Some(task) = task {
+                        complete_current_task(&dir);
+
+                        task.start();
+                        println!("{:?}", task);
+                    } else {
+                        todo!();
                     }
+                } else {
+                    complete_current_task(&dir);
 
                     let task = task::Task::new(&dir, &projects);
                     TaskOut::current_task(task.expect("Could not create task"));
