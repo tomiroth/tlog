@@ -105,17 +105,21 @@ fn main() {
             TaskCmd::Start { list, .. } => {
                 if *list {
                     let tasks = Tasks::new(ChronoUnit::Month, &dir);
-                    let task_names = tasks.get_names();
-                    let task_name = tui::menu("Select task:", &task_names);
-                    let task = tasks.get_latest_task_by_name(task_name);
+                    if let Some(tasks) = tasks {
+                        let task_names = tasks.get_names();
+                        let task_name = tui::menu("Select task:", &task_names);
+                        let task = tasks.get_latest_task_by_name(task_name);
 
-                    if let Some(task) = task {
-                        complete_current_task(&dir);
+                        if let Some(task) = task {
+                            complete_current_task(&dir);
 
-                        task.start();
-                        println!("{:?}", task);
+                            task.start();
+                            println!("{:?}", task);
+                        } else {
+                            todo!();
+                        }
                     } else {
-                        todo!();
+                        println!("No existing tasks to select from.");
                     }
                 } else {
                     complete_current_task(&dir);

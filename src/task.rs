@@ -88,7 +88,7 @@ impl<'a> Task<'a> {
             .unwrap();
 
         let mut wtr = WriterBuilder::new();
-        let mut wtr = wtr.has_headers(false).from_writer(file);
+        let mut wtr = wtr.has_headers(true).from_writer(file);
         wtr.serialize(self);
         wtr.flush();
         //let data = String::from_utf8(wtr.into_inner().unwrap()).unwrap();
@@ -105,6 +105,7 @@ impl<'a> Task<'a> {
 
     pub fn write_last_file(&self) {
         let mut wtr = Writer::from_path(&self.dir().last_file).unwrap();
+
         let _ = wtr.serialize(self);
     }
 

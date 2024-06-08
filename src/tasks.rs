@@ -2,6 +2,7 @@ use crate::dir::Dir;
 use crate::Task;
 use csv::ReaderBuilder;
 use std::fs::File;
+use std::path::Path;
 
 pub struct Tasks<'a> {
     pub inner: Vec<Task<'a>>,
@@ -17,7 +18,7 @@ pub enum ChronoUnit {
 }
 
 impl Tasks<'_> {
-    pub fn new(unit: ChronoUnit, dir: &Dir) -> Tasks {
+    pub fn new(unit: ChronoUnit, dir: &Dir) -> Option<Tasks> {
         let mut tasks: Vec<Task> = vec![];
 
         tasks = match unit {
@@ -27,10 +28,13 @@ impl Tasks<'_> {
             ChronoUnit::Day => todo!(),
         };
 
-        //Make latest tasks at the top of the vec.
-        tasks.reverse();
-
-        Tasks { inner: tasks }
+        if !tasks.is_empty() {
+            //Make latest tasks at the top of the vec.
+            tasks.reverse();
+            Some(Tasks { inner: tasks })
+        } else {
+            None
+        }
     }
 
     pub fn apply_month<'a>(
@@ -39,16 +43,20 @@ impl Tasks<'_> {
         month: &'a str,
     ) -> Vec<Task<'a>> {
         //Read task fomr current month file
-        let file = File::open(dir.month_file(&dir.current_year, &month)).unwrap();
-        let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
+        let month_path = dir.month_file(&dir.current_year, month);
+        let path = Path::new(&month_path);
+        if path.exists() {
+            let file = File::open(path).unwrap();
 
-        //Gather them into a vec.
-        for result in rdr.deserialize() {
-            let mut task: Task = result.unwrap();
-            task.set_dir(dir);
-            tasks.push(task);
+            let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
+
+            //Gather them into a vec.
+            for result in rdr.deserialize() {
+                let mut task: Task = result.unwrap();
+                task.set_dir(dir);
+                tasks.push(task);
+            }
         }
-
         tasks
     }
 
