@@ -21,6 +21,9 @@ struct Cli {
     name: Option<String>,
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
+    #[arg(long)]
+    ///Where would you like to save the data for the time tracker.
+    data_dir: Option<String>,
     #[command(subcommand)]
     command: Commands,
 }
@@ -82,6 +85,16 @@ struct ProjectAdd {
     name: Option<String>,
 }
 
+#[cfg(debug_assertions)]
+fn is_debug() -> bool {
+    true
+}
+
+#[cfg(not(debug_assertions))]
+fn is_debug() -> bool {
+    false
+}
+
 fn complete_current_task(dir: &dir::Dir) {
     let current_task = Task::from_current(dir);
     if let Some(mut current_task) = current_task {
@@ -90,7 +103,16 @@ fn complete_current_task(dir: &dir::Dir) {
 }
 fn main() {
     let cli = Cli::parse();
-    let dir = dir::Dir::new();
+
+    let data_dir = cli.data_dir;
+    //Putting this in as a safe gaurd so i don't over write my
+    //time tracker data when testing.
+    if is_debug() && data_dir.is_none() {
+        panic!("Please specify which directory to save tracking files while devoloping. You can specify the directory using --data-dir")
+    }
+
+    let dir = dir::Dir::new(data_dir);
+
     let config = config::Config::new(&dir.config_file);
 
     let projects = projects::Projects::new(&dir);

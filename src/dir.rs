@@ -30,9 +30,15 @@ pub struct Dir {
 
 impl Dir {
     //todo: handle option unwraping in this method.
-    pub fn new() -> Self {
-        let home_dir = get_my_home().unwrap().unwrap();
-        let time_tracker_dir = Self::time_tracker_dir(home_dir.to_str().unwrap());
+    pub fn new(data_dir: Option<String>) -> Self {
+        let time_tracker_dir = match data_dir {
+            Some(dir) => dir,
+            None => {
+                let home_dir = get_my_home().unwrap().unwrap();
+                let time_tracker_dir = Self::time_tracker_dir(home_dir.to_str().unwrap());
+                time_tracker_dir
+            }
+        };
 
         let year = Local::now().year().to_string();
         let month = Local::now().month().to_string();
