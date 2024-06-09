@@ -35,9 +35,14 @@ impl<'a> Task<'a> {
             _ => panic!("Please entry task name!"),
         };
 
-        let default = last_task
-            .as_ref()
-            .map(|t| t.ticket_number.to_owned().unwrap());
+        let last_task = last_task.as_ref();
+
+        let default = if let Some(tn) = &last_task.unwrap().ticket_number {
+            Some(tn.clone())
+        } else {
+            None
+        };
+
         let ticket_number = input::input("Ticket Number", default);
 
         let default = last_task.as_ref().map(|t| t.project.to_owned());
