@@ -2,7 +2,7 @@ use chrono::{prelude::Local, Duration, TimeDelta};
 
 use crate::task::Task;
 
-fn pretty_duration(duration: TimeDelta) -> String {
+pub fn pretty_duration(duration: TimeDelta) -> String {
     // Extract days, hours, and minutes from the Duration
     let days = duration.num_days();
     let hours = (duration - Duration::days(days)).num_hours();
@@ -26,13 +26,19 @@ fn pretty_duration(duration: TimeDelta) -> String {
     format!("{} ({})", time, description)
 }
 
+//todo: Remove this struct.
 pub struct TaskOut;
 impl TaskOut {
-    pub fn current_task(task: Task) {
+    pub fn current_task(task: &Task) {
         let now = Local::now();
-        let duration = now - task.start;
 
-        let ticket_string = match task.ticket_number {
+        let duration = if !task.current && task.end.is_some() {
+            task.end.unwrap() - task.start
+        } else {
+            now - task.start
+        };
+
+        let ticket_string = match &task.ticket_number {
             Some(t) => format!(" <{}>", t),
             _ => "".to_owned(),
         };

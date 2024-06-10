@@ -22,6 +22,8 @@ pub struct Task<'a> {
     pub end: Option<DateTime<Local>>,
     #[serde(skip)]
     dir: Option<&'a Dir>,
+    #[serde(skip)]
+    pub current: bool,
 }
 
 impl<'a> Task<'a> {
@@ -49,6 +51,7 @@ impl<'a> Task<'a> {
             start: Local::now(),
             end: None,
             dir: Some(dir),
+            current: true,
         };
 
         let mut wtr = Writer::from_path(&dir.current_file).unwrap();
@@ -105,6 +108,7 @@ impl<'a> Task<'a> {
             if let Some(Ok(Some(task))) = rdr.deserialize().next() {
                 let task = Task {
                     dir: Some(dir),
+                    current: true,
                     ..task
                 };
                 return Some(task);
@@ -141,5 +145,14 @@ impl<'a> Task<'a> {
             project = Self::set_project(projects, default_value);
         }
         project
+    }
+
+    pub fn time_spent(&self) -> i64 {
+        if self.end.is_some() {
+            return (self.end.unwrap() - self.start).num_seconds();
+        } else if self.end.is_none() && self.current {
+            return (Local::now() - self.start).num_seconds();
+        }
+        0
     }
 }

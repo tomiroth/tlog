@@ -7,13 +7,14 @@ mod projects;
 mod task;
 mod tasks;
 
+use chrono::Duration;
 use task::Task;
 use tasks::{ChronoUnit, Tasks};
 
 use clap::{Parser, Subcommand};
 use open::open_file_in_editor;
 
-use crate::out::{projects::ProjectsOut, task::TaskOut};
+use crate::out::{projects::ProjectsOut, task::pretty_duration, task::TaskOut};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -39,6 +40,8 @@ enum Commands {
     ///Open the latest log file in your default editor or specified
     ///editor in config.toml
     Open,
+    ///See how much time you have logged today
+    Logged,
 }
 
 #[derive(Subcommand, Debug)]
@@ -112,9 +115,7 @@ fn main() {
     }
 
     let dir = dir::Dir::new(data_dir);
-
     let config = config::Config::new(&dir.config_file);
-
     let projects = projects::Projects::new(&dir);
 
     match &cli.command {
@@ -159,25 +160,39 @@ fn main() {
                     complete_current_task(&dir);
 
                     let task = task::Task::new(&dir, &projects);
-                    TaskOut::current_task(task.expect("Could not create task"));
+                    TaskOut::current_task(&task.expect("Could not create task"));
                 }
             }
             TaskCmd::Stop => {
                 let current_task = Task::from_current(&dir);
                 if let Some(mut current_task) = current_task {
                     current_task.complete();
-                    TaskOut::current_task(current_task);
+                    TaskOut::current_task(&current_task);
                 }
 
                 let _task = Task::from_current(&dir);
             }
             TaskCmd::Current => {
                 let task = Task::from_current(&dir);
-                TaskOut::current_task(task.expect("Could not create task"));
+                TaskOut::current_task(&task.expect("Could not create task"));
             }
         },
         Commands::Open => {
             open_file_in_editor(&config.editor, &dir.log_file);
+        }
+        Commands::Logged => {
+            let tasks = Tasks::new(ChronoUnit::Day, &dir).unwrap();
+            tasks.output_task();
+            let time_spent = tasks.time_spent();
+
+            println!();
+            println!();
+            println!("Current Task:");
+            let current_task = Task::from_current(&dir).unwrap();
+            TaskOut::current_task(&current_task);
+
+            let dur = Duration::new(time_spent + current_task.time_spent(), 0).unwrap();
+            println!("Time spent today: {}", pretty_duration(dur));
         }
     }
 }
