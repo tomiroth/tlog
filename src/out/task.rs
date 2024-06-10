@@ -1,7 +1,4 @@
-use chrono::{
-    prelude::{Local},
-    Duration, TimeDelta,
-};
+use chrono::{prelude::Local, Duration, TimeDelta};
 
 use crate::task::Task;
 
@@ -11,14 +8,14 @@ fn pretty_duration(duration: TimeDelta) -> String {
     let hours = (duration - Duration::days(days)).num_hours();
     let minutes = (duration - Duration::days(days) - Duration::hours(hours)).num_minutes();
 
-    let days = if days > 0 {
-        (format!("{}:", days), format!("{}:", "Days"))
+    let hours = if hours > 0 || days > 0 {
+        (format!("{}:", hours), format!("{}:", "Hours"))
     } else {
         ("".to_owned(), "".to_owned())
     };
 
-    let hours = if hours > 0 {
-        (format!("{}:", hours), format!("{}:", "Hours"))
+    let days = if days > 0 {
+        (format!("{}:", days), format!("{}:", "Days"))
     } else {
         ("".to_owned(), "".to_owned())
     };
