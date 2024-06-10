@@ -1,5 +1,6 @@
 use core::panic;
 use std::fs::OpenOptions;
+use std::path::Path;
 
 use chrono::prelude::{DateTime, Local};
 use csv::{Reader, Writer, WriterBuilder};
@@ -57,12 +58,12 @@ impl<'a> Task<'a> {
     }
 
     pub fn set_dir(&mut self, dir: &'a Dir) {
-        self.dir = Some(&dir);
+        self.dir = Some(dir);
     }
 
     pub fn start(&self) {
         let mut wtr = Writer::from_path(&self.dir.unwrap().current_file).unwrap();
-        let _ = wtr.serialize(&self);
+        let _ = wtr.serialize(self);
     }
 
     pub fn complete(&mut self) {
@@ -77,28 +78,20 @@ impl<'a> Task<'a> {
     }
 
     pub fn write_to_log_file(&self) {
+        let log_location = self.dir().get_log_file_location();
+        let path = Path::new(&log_location);
+        let include_headers = !path.exists();
         let file = self.dir().get_log_file_location();
         let file = OpenOptions::new()
-            .write(true)
             .append(true)
             .create(true)
             .open(file)
             .unwrap();
 
         let mut wtr = WriterBuilder::new();
-        let mut wtr = wtr.has_headers(true).from_writer(file);
-        wtr.serialize(self);
-        wtr.flush();
-        //let data = String::from_utf8(wtr.into_inner().unwrap()).unwrap();
-        //let mut file = OpenOptions::new()
-        //    .write(true)
-        //    .create(true)
-        //    .append(true)
-        //    .open(file)
-        //    .unwrap();
-        //
-        //writeln!(file, "{}", data).unwrap();
-        //Ok(())
+        let mut wtr = wtr.has_headers(include_headers).from_writer(file);
+        let _ = wtr.serialize(self);
+        let _ = wtr.flush();
     }
 
     pub fn write_last_file(&self) {
