@@ -181,7 +181,7 @@ fn main() {
             open_file_in_editor(&config.editor, &dir.log_file);
         }
         Commands::Logged => {
-            let tasks = Tasks::new(ChronoUnit::Day, &dir).unwrap();
+            let tasks = Tasks::new(ChronoUnit::Week, &dir).unwrap();
             tasks.output_task();
             let time_spent = tasks.time_spent();
 
