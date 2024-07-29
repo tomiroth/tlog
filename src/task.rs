@@ -12,6 +12,8 @@ use crate::out::projects::ProjectsOut;
 
 use crate::projects::Projects;
 
+use arboard::Clipboard;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Task<'a> {
@@ -27,15 +29,20 @@ pub struct Task<'a> {
 }
 
 impl<'a> Task<'a> {
-    pub fn new(dir: &'a Dir, projects: &Projects) -> Option<Self> {
+    pub fn new(
+        dir: &'a Dir,
+        projects: &Projects,
+        default_name_from_clipboard: bool,
+    ) -> Option<Self> {
         let last_task = Self::from_last(dir);
-        println!("{:?}", last_task);
 
-        let default = last_task.as_ref().map(|t| t.name.to_owned());
-        println!("{default:?}");
+        let default = Self::default_name(
+            default_name_from_clipboard,
+            last_task.as_ref().map(|t| t.name.to_owned()),
+        );
         let name = match input::input("Task name", default) {
             Some(name) => name,
-            _ => panic!("Please entry task name!"),
+            _ => panic!("Please enter task name!"),
         };
 
         let default = last_task.as_ref().and_then(|t| t.ticket_number.clone());
@@ -58,6 +65,33 @@ impl<'a> Task<'a> {
         let _ = wtr.serialize(&task);
 
         Some(task)
+    }
+
+    fn default_name(
+        default_name_from_clipboard: bool,
+        last_task_name: Option<String>,
+    ) -> Option<String> {
+        let clipboard_value = Self::get_clipboard_name();
+
+        if default_name_from_clipboard {
+            if let Some(value) = clipboard_value {
+                Some(value)
+            } else {
+                last_task_name
+            }
+        } else {
+            last_task_name
+        }
+    }
+
+    fn get_clipboard_name() -> Option<String> {
+        let mut clipboard = Clipboard::new().unwrap();
+        let clipboard_contents = clipboard.get_text().unwrap();
+        if clipboard_contents.contains('\n') {
+            None
+        } else {
+            Some(clipboard.get_text().unwrap())
+        }
     }
 
     pub fn set_dir(&mut self, dir: &'a Dir) {

@@ -137,7 +137,9 @@ fn main() {
             }
         },
         Commands::Task(cmd) => match cmd {
-            TaskCmd::Start { list, .. } => {
+            TaskCmd::Start {
+                list, clip_board, ..
+            } => {
                 if *list {
                     let tasks = Tasks::new(ChronoUnit::Month, &dir);
                     if let Some(tasks) = tasks {
@@ -159,7 +161,7 @@ fn main() {
                 } else {
                     complete_current_task(&dir);
 
-                    let task = task::Task::new(&dir, &projects);
+                    let task = task::Task::new(&dir, &projects, *clip_board);
                     TaskOut::current_task(&task.expect("Could not create task"));
                 }
             }
